@@ -26,9 +26,12 @@ WORKINGDIR=/etc/dkimkeys
 KEYFILE=key.table
 KEYDIR=keys
 NEWSERIAL=`/bin/date "+%Y%m"`
+EPOCH=`/bin/date "+%s"`
 
-# Before we do anything, let's back up the only file we're going to change.
-cp ${WORKINGDIR}/${KEYFILE} ${WORKINGDIR}/${KEYFILE}.pre-${NEWSERIAL}
+# Before we do anything, let's back up the only file we're going to change and
+# sleep one second in case someone is WICKED FAST.
+cp ${WORKINGDIR}/${KEYFILE} ${WORKINGDIR}/${KEYFILE}.pre-${NEWSERIAL}.${EPOCH}
+sleep 1
 
 # Let's get a list of domain we can loop through.
 declare -a domains
@@ -49,11 +52,14 @@ while (( ${#domains[@]} > i )); do
 	opendkim-genkey -b 2048 -h sha256 -r -s ${NEWSERIAL} -d ${dkim_config_vars[2]} -D ${WORKINGDIR}/${KEYDIR}
 
 	# Rename them accordingly.
-	mv ${WORKINGDIR}/${KEYDIR}/${NEWSERIAL}.private ${WORKINGDIR}/${KEYDIR}/${domain_identifier_config}.${NEWSERIAL}.private
-	mv ${WORKINGDIR}/${KEYDIR}/${NEWSERIAL}.txt ${WORKINGDIR}/${KEYDIR}/${domain_identifier_config}.${NEWSERIAL}.txt
+	NEWPRIVATEKEY=${WORKINGDIR}/${KEYDIR}/${domain_identifier_config}.${NEWSERIAL}.private
+	NEWPUBLICKEY=${WORKINGDIR}/${KEYDIR}/${domain_identifier_config}.${NEWSERIAL}.txt
+	mv ${WORKINGDIR}/${KEYDIR}/${NEWSERIAL}.private ${NEWPRIVATEKEY}
+	mv ${WORKINGDIR}/${KEYDIR}/${NEWSERIAL}.txt ${NEWPUBLICKEY}
+	chown opendkim.opendkim ${NEWPRIVATEKEY} ${NEWPUBLICKEY}
 
 	# Update key.table to have the new config for that particular line item.
-  sed -i -e "s/${dkim_config_vars[1]}:${dkim_config_vars[2]//\//\\/}/${NEWSERIAL}:${dkim_config_vars[2]//\//\\/}/" ${WORKINGDIR}/${KEYFILE}
+	sed -i -e "s/${dkim_config_vars[1]}:${dkim_config_vars[2]//\//\\/}/${NEWSERIAL}:${NEWPRIVATEKEY//\//\\/}/" ${WORKINGDIR}/${KEYFILE}
 
 	# Future expansion, automatically update your DNS provider with the new record here.
 
