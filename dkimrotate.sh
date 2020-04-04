@@ -20,6 +20,9 @@
 # 2) You must set some default values here, such as the working directory
 #    and the config file names. Everyone does things a little differently, so
 #    this is my way of trying to make this as universally functional as possible.
+# 3) You must set environment vars for GODADDYKEY and GODADDYSECRET with your
+#    Production API keys, and GODADDYOTEKEY and GODADDYOTESECRET with test
+#    keys if you wish to use them.
 
 # First, let's define some constants.
 WORKINGDIR=/etc/dkimkeys
@@ -28,12 +31,31 @@ KEYDIR=keys
 NEWSERIAL=`/bin/date "+%Y%m"`
 EPOCH=`/bin/date "+%s"`
 
+# GoDaddy API setup
+TYPE="TXT"
+TTL="3600"
+PORT="1"
+WEIGHT="1"
+PRIORITY="0"
+PROTOCOL="NONE"
+SERVICE="NONE"
+
+# For GoDaddy, if you are testing, then use these settings and comment out
+# the production ones.
+### PROD API ###
+#HEADERS="Authorization: sso-key $GODADDYKEY:$GODADDYSECRET"
+#APIURL="api.godaddy.com"
+### TEST API ###
+HEADERS="Authorization: sso-key $GODADDYOTEKEY:$GODADDYOTESECRET"
+APIURL="api.ote-godaddy.com"
+
+
 # Before we do anything, let's back up the only file we're going to change and
 # sleep one second in case someone is WICKED FAST.
 cp ${WORKINGDIR}/${KEYFILE} ${WORKINGDIR}/${KEYFILE}.pre-${NEWSERIAL}.${EPOCH}
 sleep 1
 
-# Let's get a list of domain we can loop through.
+# Let's get a list of domains we can loop through.
 declare -a domains
 readarray -t domains < ${WORKINGDIR}/${KEYFILE}
 
@@ -45,7 +67,7 @@ while (( ${#domains[@]} > i )); do
 	domain_dkim_config="${domains[i]##*$'\t'}"
 	domain_identifier_config="${domains[i]%%$'\t'*}"
 
-	# Second, split into three fields using cut. (1-domain name, 2-serial, 3-keyfile)
+	# Second, split into three fields. (1-domain name, 2-serial, 3-keyfile)
 	IFS=: read -r -a dkim_config_vars <<< "$domain_dkim_config"
 
 	# Generate the new keys
@@ -61,12 +83,25 @@ while (( ${#domains[@]} > i )); do
 	# Update key.table to have the new config for that particular line item.
 	sed -i -e "s/${dkim_config_vars[1]}:${dkim_config_vars[2]//\//\\/}/${NEWSERIAL}:${NEWPRIVATEKEY//\//\\/}/" ${WORKINGDIR}/${KEYFILE}
 
-	# Future expansion, automatically update your DNS provider with the new record here.
+	# Now to send the new records to GoDaddy...
+	# This is messy, but so is the file left by OpenDkim. So what I'm doing here
+	# is removing whitespace, removing SOME of the quotes (this becomes useful
+	# later), putting it all on one line, and then grabbing essentially the
+	# actual TXT record ONLY. So yes, messy, but so is their file.
+	txtrecord=`cat ${NEWPUBLICKEY} | awk '{$1=$1};1' | sed -e 's/^"//' -e 's/"$//' | tr -d "\n" | cut -d"\"" -f2`
+
+	# Now this bit of kit took a little bit of work. Mostly because this is a new
+	# skill for the Doc. Anyway, we now can insert the new record with our domain
+	# as we go. So we hit it one by one.
+	curl -X PATCH "https://${APIURL}/v1/domains/${dkim_config_vars[0]}/records" \
+		-H "Accept: application/json" \
+		-H "Content-Type: application/json" \
+		-H "${HEADERS}" \
+		--data "[ { \"data\": \"${txtrecord}\", \"name\": \"${NEWSERIAL}._domainkey\", \"port\": ${PORT}, \"priority\": ${PRIORITY}, \"protocol\": \"${PROTOCOL}\", \"service\": \"${SERVICE}\", \"ttl\": ${TTL}, \"type\": \"${TYPE}\", \"weight\": ${WEIGHT} } ]"
 
 	((i++))
 done
 
 # Restart OpenDkim
-# This is commented out for now because the DNS records are not automatically put
-# into service. DNS records should be inserted FIRST, then restart opendkim.
-#service opendkim restart
+# DNS records should be inserted FIRST, then restart opendkim.
+service opendkim restart
