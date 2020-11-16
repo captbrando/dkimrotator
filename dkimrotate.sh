@@ -8,18 +8,20 @@
 # 1) Get a list of domains from the key table file.
 # 2) Loop through each entry to accomplish this:
 # 	a) Generate new keys for the domain.
-#		b) Rename keys with timestamp & domain.
-#	3) Update config file to point all domains to new keys
-# FUTURE) Update DNS and Restart opendkim
+#	b) Rename keys with timestamp & domain.
+# 3) Update config file to point all domains to new keys
+# 4) Update DNS and Restart opendkim
 
 # RULES FOR THIS SCRIPT
 #
-# 1) All keys will be rotated every month. The Key identifier needs to be the
+# 1) All keys will be rotated periodically. The Key identifier needs to be the
 #    same for this one. You could add more logic if you like to pick these off
-#    one at a time, but right now I'm being a lazy.
+#    one at a time, but right now I'm being a lazy. The logic here prevents
+#    key rotation more frequently than monthly. Cron it, yo.
 # 2) You must set some default values here, such as the working directory
 #    and the config file names. Everyone does things a little differently, so
-#    this is my way of trying to make this as universally functional as possible.
+#    this is my way of trying to make this as universally functional as 
+#    possible.
 # 3) You must set environment vars for GODADDYKEY and GODADDYSECRET with your
 #    Production API keys, and GODADDYOTEKEY and GODADDYOTESECRET with test
 #    keys if you wish to use them.
