@@ -32,6 +32,7 @@ KEYFILE=key.table
 KEYDIR=keys
 NEWSERIAL=`/bin/date "+%Y%m"`
 EPOCH=`/bin/date "+%s"`
+OPENDKIM_GENKEY=/usr/sbin/opendkim-genkey
 
 # GoDaddy API setup
 TYPE="TXT"
@@ -73,7 +74,7 @@ while (( ${#domains[@]} > i )); do
 	IFS=: read -r -a dkim_config_vars <<< "$domain_dkim_config"
 
 	# Generate the new keys
-	opendkim-genkey -b 2048 -h sha256 -r -s ${NEWSERIAL} -d ${dkim_config_vars[2]} -D ${WORKINGDIR}/${KEYDIR}
+	${OPENDKIM_GENKEY} -b 2048 -h sha256 -r -s ${NEWSERIAL} -d ${dkim_config_vars[2]} -D ${WORKINGDIR}/${KEYDIR}
 
 	# Rename them accordingly.
 	NEWPRIVATEKEY=${WORKINGDIR}/${KEYDIR}/${domain_identifier_config}.${NEWSERIAL}.private
