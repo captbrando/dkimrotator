@@ -30,8 +30,8 @@
 WORKINGDIR=/etc/dkimkeys
 KEYFILE=key.table
 KEYDIR=keys
-NEWSERIAL=`/bin/date "+%Y%m"`
-EPOCH=`/bin/date "+%s"`
+NEWSERIAL=$(/bin/date "+%Y%m")
+EPOCH=$(/bin/date "+%s")
 OPENDKIM_GENKEY=/usr/sbin/opendkim-genkey
 
 # GoDaddy API setup
@@ -55,7 +55,7 @@ APIURL="api.ote-godaddy.com"
 
 # Before we do anything, let's back up the only file we're going to change and
 # sleep one second in case someone is WICKED FAST.
-cp ${WORKINGDIR}/${KEYFILE} ${WORKINGDIR}/${KEYFILE}.pre-${NEWSERIAL}.${EPOCH}
+cp "${WORKINGDIR}"/"${KEYFILE}" "${WORKINGDIR}"/"${KEYFILE}".pre-"${NEWSERIAL}"."${EPOCH}"
 sleep 1
 
 # Let's get a list of domains we can loop through.
@@ -64,7 +64,7 @@ readarray -t domains < ${WORKINGDIR}/${KEYFILE}
 
 # Now we're going to loop through each config file line. This will allow us to
 # generate new keys for only the domains configured.
-let i=0
+i=0
 while (( ${#domains[@]} > i )); do
 	# First, pull everything to the right of the tabs.
 	domain_dkim_config="${domains[i]##*$'\t'}"
@@ -74,14 +74,14 @@ while (( ${#domains[@]} > i )); do
 	IFS=: read -r -a dkim_config_vars <<< "$domain_dkim_config"
 
 	# Generate the new keys
-	${OPENDKIM_GENKEY} -b 2048 -h sha256 -r -s ${NEWSERIAL} -d ${dkim_config_vars[2]} -D ${WORKINGDIR}/${KEYDIR}
+	${OPENDKIM_GENKEY} -b 2048 -h sha256 -r -s "${NEWSERIAL}" -d "${dkim_config_vars[2]}" -D ${WORKINGDIR}/${KEYDIR}
 
 	# Rename them accordingly.
 	NEWPRIVATEKEY=${WORKINGDIR}/${KEYDIR}/${domain_identifier_config}.${NEWSERIAL}.private
 	NEWPUBLICKEY=${WORKINGDIR}/${KEYDIR}/${domain_identifier_config}.${NEWSERIAL}.txt
-	mv ${WORKINGDIR}/${KEYDIR}/${NEWSERIAL}.private ${NEWPRIVATEKEY}
-	mv ${WORKINGDIR}/${KEYDIR}/${NEWSERIAL}.txt ${NEWPUBLICKEY}
-	chown opendkim.opendkim ${NEWPRIVATEKEY} ${NEWPUBLICKEY}
+	mv ${WORKINGDIR}/${KEYDIR}/"${NEWSERIAL}".private "${NEWPRIVATEKEY}"
+	mv ${WORKINGDIR}/${KEYDIR}/"${NEWSERIAL}".txt "${NEWPUBLICKEY}"
+	chown opendkim.opendkim "${NEWPRIVATEKEY}" "${NEWPUBLICKEY}"
 
 	# Update key.table to have the new config for that particular line item.
 	sed -i -e "s/${dkim_config_vars[1]}:${dkim_config_vars[2]//\//\\/}/${NEWSERIAL}:${NEWPRIVATEKEY//\//\\/}/" ${WORKINGDIR}/${KEYFILE}
@@ -91,7 +91,7 @@ while (( ${#domains[@]} > i )); do
 	# is removing whitespace, removing SOME of the quotes (this becomes useful
 	# later), putting it all on one line, and then grabbing essentially the
 	# actual TXT record ONLY. So yes, messy, but so is their file.
-	txtrecord=`cat ${NEWPUBLICKEY} | awk '{$1=$1};1' | sed -e 's/^"//' -e 's/"$//' | tr -d "\n" | cut -d"\"" -f2`
+	txtrecord=$(< "${NEWPUBLICKEY}" | awk '{$1=$1};1' | sed -e 's/^"//' -e 's/"$//' | tr -d "\n" | cut -d"\"" -f2)
 
 	# Now this bit of kit took a little bit of work. Mostly because this is a new
 	# skill for the Doc. Anyway, we now can insert the new record with our domain
