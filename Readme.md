@@ -1,3 +1,5 @@
+![Open Issues](https://img.shields.io/github/issues/captbrando/dkimrotator) ![Pull Requests](https://img.shields.io/github/issues-pr/captbrando/dkimrotator)
+
 # DKIM Rotator README
 
 The DKIM Rotator script will rotate all generated DKIM keys in a given key directory using the date as the selector and update GoDaddy with new TXT records. Only the Year and Month fields (YYYYMM) will be leveraged for the selector. This script can easily be modified if you wanted to add an additional serial number at the end.
