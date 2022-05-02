@@ -33,6 +33,14 @@ KEYDIR=keys
 NEWSERIAL=$(/bin/date "+%Y%m")
 EPOCH=$(/bin/date "+%s")
 OPENDKIM_GENKEY=/usr/sbin/opendkim-genkey
+CURL=/usr/bin/curl
+MV=/bin/mv
+CHOWN=/bin/chown
+SED=/bin/sed
+AWK=/usr/bin/awk
+CP=/bin/cp
+SLEEP=/bin/sleep
+SERVICECMD=/usr/sbin/service
 
 # GoDaddy API setup
 TYPE="TXT"
@@ -55,8 +63,8 @@ APIURL="api.ote-godaddy.com"
 
 # Before we do anything, let's back up the only file we're going to change and
 # sleep one second in case someone is WICKED FAST.
-cp "${WORKINGDIR}"/"${KEYFILE}" "${WORKINGDIR}"/"${KEYFILE}".pre-"${NEWSERIAL}"."${EPOCH}"
-sleep 1
+${CP} "${WORKINGDIR}"/"${KEYFILE}" "${WORKINGDIR}"/"${KEYFILE}".pre-"${NEWSERIAL}"."${EPOCH}"
+${SLEEP} 1
 
 # Let's get a list of domains we can loop through.
 declare -a domains
@@ -79,24 +87,24 @@ while (( ${#domains[@]} > i )); do
 	# Rename them accordingly.
 	NEWPRIVATEKEY=${WORKINGDIR}/${KEYDIR}/${domain_identifier_config}.${NEWSERIAL}.private
 	NEWPUBLICKEY=${WORKINGDIR}/${KEYDIR}/${domain_identifier_config}.${NEWSERIAL}.txt
-	mv ${WORKINGDIR}/${KEYDIR}/"${NEWSERIAL}".private "${NEWPRIVATEKEY}"
-	mv ${WORKINGDIR}/${KEYDIR}/"${NEWSERIAL}".txt "${NEWPUBLICKEY}"
-	chown opendkim.opendkim "${NEWPRIVATEKEY}" "${NEWPUBLICKEY}"
+	${MV} ${WORKINGDIR}/${KEYDIR}/"${NEWSERIAL}".private "${NEWPRIVATEKEY}"
+	${MV} ${WORKINGDIR}/${KEYDIR}/"${NEWSERIAL}".txt "${NEWPUBLICKEY}"
+	${CHOWN} opendkim.opendkim "${NEWPRIVATEKEY}" "${NEWPUBLICKEY}"
 
 	# Update key.table to have the new config for that particular line item.
-	sed -i -e "s/${dkim_config_vars[1]}:${dkim_config_vars[2]//\//\\/}/${NEWSERIAL}:${NEWPRIVATEKEY//\//\\/}/" ${WORKINGDIR}/${KEYFILE}
+	${SED} -i -e "s/${dkim_config_vars[1]}:${dkim_config_vars[2]//\//\\/}/${NEWSERIAL}:${NEWPRIVATEKEY//\//\\/}/" ${WORKINGDIR}/${KEYFILE}
 
 	# Now to send the new records to GoDaddy...
 	# This is messy, but so is the file left by OpenDkim. So what I'm doing here
 	# is removing whitespace, removing SOME of the quotes (this becomes useful
 	# later), putting it all on one line, and then grabbing essentially the
 	# actual TXT record ONLY. So yes, messy, but so is their file.
-	txtrecord=$(< "${NEWPUBLICKEY}" awk '{$1=$1};1' | sed -e 's/^"//' -e 's/"$//' | tr -d "\n" | cut -d"\"" -f2)
+	txtrecord=$(< "${NEWPUBLICKEY}" awk '{$1=$1};1' | ${SED} -e 's/^"//' -e 's/"$//' | tr -d "\n" | cut -d"\"" -f2)
 
 	# Now this bit of kit took a little bit of work. Mostly because this is a new
 	# skill for the Doc. Anyway, we now can insert the new record with our domain
 	# as we go. So we hit it one by one.
-	curl -X PATCH "https://${APIURL}/v1/domains/${dkim_config_vars[0]}/records" \
+	${CURL} -X PATCH "https://${APIURL}/v1/domains/${dkim_config_vars[0]}/records" \
 		-H "Accept: application/json" \
 		-H "Content-Type: application/json" \
 		-H "${HEADERS}" \
@@ -107,4 +115,4 @@ done
 
 # Restart OpenDkim
 # DNS records should be inserted FIRST, then restart opendkim.
-service opendkim restart
+${SERVICECMD} opendkim restart
