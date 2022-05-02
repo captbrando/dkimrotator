@@ -91,7 +91,7 @@ while (( ${#domains[@]} > i )); do
 	# is removing whitespace, removing SOME of the quotes (this becomes useful
 	# later), putting it all on one line, and then grabbing essentially the
 	# actual TXT record ONLY. So yes, messy, but so is their file.
-	txtrecord=$(< "${NEWPUBLICKEY}" | awk '{$1=$1};1' | sed -e 's/^"//' -e 's/"$//' | tr -d "\n" | cut -d"\"" -f2)
+	txtrecord=$(< "${NEWPUBLICKEY}" awk '{$1=$1};1' | sed -e 's/^"//' -e 's/"$//' | tr -d "\n" | cut -d"\"" -f2)
 
 	# Now this bit of kit took a little bit of work. Mostly because this is a new
 	# skill for the Doc. Anyway, we now can insert the new record with our domain
