@@ -51,6 +51,9 @@ PRIORITY="0"
 PROTOCOL="NONE"
 SERVICE="NONE"
 
+# Define an array of domains we want to exclude
+exclude_names=("gatherunderpants.com" "questionmark.com" "profit.com")
+
 # For GoDaddy, if you are testing, then use these settings and comment out
 # the production ones.
 ### PROD API ###
@@ -80,6 +83,15 @@ while (( ${#domains[@]} > i )); do
 
 	# Second, split into three fields. (1-domain name, 2-serial, 3-keyfile)
 	IFS=: read -r -a dkim_config_vars <<< "$domain_dkim_config"
+
+	# Check to see if this domain is in our exclude list
+	for excluded_domain in "${exclude_names[@]}"; do
+		# Check if the input matches a name
+		if [ "${dkim_config_vars[0]}" = "$excluded_domain" ]; then
+			((i++))
+			continue 2 # continue the while loop
+		fi
+	done
 
 	# Generate the new keys
 	${OPENDKIM_GENKEY} -b 2048 -h sha256 -r -s "${NEWSERIAL}" -d "${dkim_config_vars[0]}" -D ${WORKINGDIR}/${KEYDIR}
