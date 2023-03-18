@@ -51,6 +51,9 @@ PRIORITY="0"
 PROTOCOL="NONE"
 SERVICE="NONE"
 
+# Define an array of domains we want to exclude
+exclude_names=("gatherunderpants.com" "questionmark.com" "profit.com")
+
 # For GoDaddy, if you are testing, then use these settings and comment out
 # the production ones.
 ### PROD API ###
@@ -81,8 +84,17 @@ while (( ${#domains[@]} > i )); do
 	# Second, split into three fields. (1-domain name, 2-serial, 3-keyfile)
 	IFS=: read -r -a dkim_config_vars <<< "$domain_dkim_config"
 
+	# Check to see if this domain is in our exclude list
+	for excluded_domain in "${exclude_names[@]}"; do
+		# Check if the input matches a name
+		if [ "${dkim_config_vars[0]}" = "$excluded_domain" ]; then
+			((i++))
+			continue 2 # continue the while loop
+		fi
+	done
+
 	# Generate the new keys
-	${OPENDKIM_GENKEY} -b 2048 -h sha256 -r -s "${NEWSERIAL}" -d "${dkim_config_vars[2]}" -D ${WORKINGDIR}/${KEYDIR}
+	${OPENDKIM_GENKEY} -b 2048 -h sha256 -r -s "${NEWSERIAL}" -d "${dkim_config_vars[0]}" -D ${WORKINGDIR}/${KEYDIR}
 
 	# Rename them accordingly.
 	NEWPRIVATEKEY=${WORKINGDIR}/${KEYDIR}/${domain_identifier_config}.${NEWSERIAL}.private
@@ -99,7 +111,7 @@ while (( ${#domains[@]} > i )); do
 	# is removing whitespace, removing SOME of the quotes (this becomes useful
 	# later), putting it all on one line, and then grabbing essentially the
 	# actual TXT record ONLY. So yes, messy, but so is their file.
-	txtrecord=$(< "${NEWPUBLICKEY}" awk '{$1=$1};1' | ${SED} -e 's/^"//' -e 's/"$//' | tr -d "\n" | cut -d"\"" -f2)
+	txtrecord=$(< "${NEWPUBLICKEY}" ${AWK} '{$1=$1};1' | ${SED} -e 's/^"//' -e 's/"$//' | tr -d "\n" | cut -d"\"" -f2)
 
 	# Now this bit of kit took a little bit of work. Mostly because this is a new
 	# skill for the Doc. Anyway, we now can insert the new record with our domain
