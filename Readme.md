@@ -16,7 +16,7 @@ In order for this script to successfully run, there are a few prereqs and assump
 
 
 ### Setting up DKIM
-Getting DKIM going on your server is outside the scope of this document, but you can refer to [this guide](https://github.com/linode/docs/blob/master/docs/email/postfix/configure-spf-and-dkim-in-postfix-on-debian-8.md "DKIM with Postfix on Debian 8") for a Debian/Postfix/DKIM setup. One quick note, there is still a mistake in this guide document. When generating keys, the proper `-h` flag is `sha256`, NOT `rsa-sha256`. You can also check out Debian's [OpenDKIM](https://wiki.debian.org/opendkim "Debian's OpenDKIM") guide.
+Getting DKIM going on your server is outside the scope of this document, but you can refer to [this guide](https://github.com/linode/docs/blob/develop/docs/guides/email/postfix/configure-spf-and-dkim-in-postfix-on-debian-8/index.md "DKIM with Postfix on Debian 8") for a Debian/Postfix/DKIM setup. One quick note, there is still a mistake in this guide document. When generating keys, the proper `-h` flag is `sha256`, NOT `rsa-sha256`. You can also check out Debian's [OpenDKIM](https://wiki.debian.org/opendkim "Debian's OpenDKIM") guide.
 
 ## Usage
 Pretty simple. Just run the script and be sure you have met the prerequisites above.
