@@ -7,7 +7,7 @@ The DKIM Rotator script will rotate all generated DKIM keys in a given key direc
 ## Prerequisites
 In order for this script to successfully run, there are a few prereqs and assumptions to consider:
 
-* The `opendkim-genkey`, `mv`, `cp`, `sed`, `cat`, and `awk` binaries must be in the path of the script. Instead of pre-declaring all these, I just call them for maximum portability. Just keep in mind, you need to account for this.
+* The `opendkim-genkey`, `mv`, `cp`, `sed`, and `cat` binaries need to have corrected paths set up in the declarations. The `awk` binary **must** be in the path of the script for a really goofy and unavoidable reason.
 * You have already installed `opendkim` and it's working swimmingly.
 * You define your working directory where your keys and key table files are. Right now its set as `/etc/dkimkeys`.
 * All keys that will be rotated are defined in your key table. Technically you don't need to have pre-existing keys, but it may bark an error on you when it tries to move the old key out of the way.
