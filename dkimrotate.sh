@@ -100,7 +100,7 @@ while (( ${#domains[@]} > i )); do
 	NEWPUBLICKEY=${WORKINGDIR}/${KEYDIR}/${domain_identifier_config}.${NEWSERIAL}.txt
 	${MV} ${WORKINGDIR}/${KEYDIR}/"${NEWSERIAL}".private "${NEWPRIVATEKEY}"
 	${MV} ${WORKINGDIR}/${KEYDIR}/"${NEWSERIAL}".txt "${NEWPUBLICKEY}"
-	${CHOWN} opendkim.opendkim "${NEWPRIVATEKEY}" "${NEWPUBLICKEY}"
+	${CHOWN} opendkim:opendkim "${NEWPRIVATEKEY}" "${NEWPUBLICKEY}"
 
 	# Update key.table to have the new config for that particular line item.
 	${SED} -i -e "s/${dkim_config_vars[1]}:${dkim_config_vars[2]//\//\\/}/${NEWSERIAL}:${NEWPRIVATEKEY//\//\\/}/" ${WORKINGDIR}/${KEYFILE}
